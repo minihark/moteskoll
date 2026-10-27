@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #060911;
+  color: #f1f5f9;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #moteskoll-printable-receipt,
+  #moteskoll-printable-receipt * {
+    visibility: visible;
+  }
+  #moteskoll-printable-receipt {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 2rem;
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+}
