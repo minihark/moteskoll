@@ -75,10 +75,18 @@ const DEFAULT_AGENDA: AgendaStep[] = [
   { id: 'a3', title: 'Beslut, @Ansvariga & Nästa steg', minutes: 10, completed: false },
 ];
 
+let sharedAudioCtx: AudioContext | null = null;
+
 function playTickChime(freq = 660) {
   try {
     const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new AudioCtx();
+    if (!sharedAudioCtx) {
+      sharedAudioCtx = new AudioCtx();
+    }
+    const ctx = sharedAudioCtx;
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine';
@@ -184,7 +192,7 @@ export function App() {
   const decisionsCount = items.filter((i) => i.kind === 'decision').length;
   const actionsCount = items.filter((i) => i.kind === 'action').length;
   const totalOutcomes = decisionsCount + actionsCount;
-  const referenceCost = elapsedSeconds > 15 ? liveCostSek : plannedTotalCostSek;
+  const referenceCost = elapsedSeconds > 10 ? liveCostSek : plannedTotalCostSek;
   const costPerOutcomeSek =
     totalOutcomes > 0 ? Math.round(referenceCost / totalOutcomes) : Math.round(referenceCost);
 

@@ -15,6 +15,7 @@ const DB_PATH = path.join(DATA_DIR, 'moteskoll.db');
 const db = new DatabaseSync(DB_PATH);
 
 db.exec(`
+  PRAGMA journal_mode = WAL;
   CREATE TABLE IF NOT EXISTS meetings (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
