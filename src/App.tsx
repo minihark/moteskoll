@@ -22,6 +22,10 @@ import {
   AlertTriangle,
   History,
   X,
+  Bell,
+  BellOff,
+  Calendar,
+  Upload,
 } from 'lucide-react';
 
 interface RoleTier {
@@ -100,6 +104,43 @@ function playTickChime(freq = 660) {
   } catch {}
 }
 
+function playThresholdAlertChime(level: 'warning' | 'critical') {
+  try {
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!sharedAudioCtx) {
+      sharedAudioCtx = new AudioCtx();
+    }
+    const ctx = sharedAudioCtx;
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+    const notes = level === 'critical' ? [587.33, 783.99, 1046.5] : [523.25, 659.25];
+    notes.forEach((freq, idx) => {
+      const start = ctx.currentTime + idx * 0.13;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = level === 'critical' ? 'triangle' : 'sine';
+      osc.frequency.setValueAtTime(freq, start);
+      gain.gain.setValueAtTime(0.09, start);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.24);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + 0.24);
+    });
+  } catch {}
+}
+
+function parseIcsTimestamp(raw: string): Date | null {
+  const m = raw.trim().match(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z)?/);
+  if (!m) return null;
+  const [, y, mo, d, h, mi, s, z] = m;
+  if (z) {
+    return new Date(Date.UTC(+y, +mo - 1, +d, +h, +mi, +s));
+  }
+  return new Date(+y, +mo - 1, +d, +h, +mi, +s);
+}
+
 export function App() {
   const [meetingTitle, setMeetingTitle] = useState('Arkitektur & Sprint-Beslut');
   const [plannedMinutes, setPlannedMinutes] = useState(30);
@@ -110,10 +151,18 @@ export function App() {
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
-  // Agenda State
+  // Cost-Alert Threshold State
+  const [budgetLimitSek, setBudgetLimitSek] = useState<number>(5000);
+  const [soundAlertsEnabled, setSoundAlertsEnabled] = useState<boolean>(true);
+  const firedThresholdStageRef = useRef<0 | 1 | 2>(0);
+
+  // Agenda & Calendar (.ics) Importer State
   const [agenda, setAgenda] = useState<AgendaStep[]>(DEFAULT_AGENDA);
   const [newAgendaTitle, setNewAgendaTitle] = useState('');
   const [newAgendaMins, setNewAgendaMins] = useState(10);
+  const [showCalendarImporter, setShowCalendarImporter] = useState(false);
+  const [calendarInputText, setCalendarInputText] = useState('');
+  const [calendarImportNotice, setCalendarImportNotice] = useState<string | null>(null);
 
   // Action & Decision Extractor State
   const [items, setItems] = useState<ExtractedItem[]>([
@@ -188,6 +237,28 @@ export function App() {
 
   const liveCostSek = elapsedSeconds * burnRatePerSecSek;
   const plannedTotalCostSek = (plannedMinutes / 60) * burnRatePerHourSek;
+
+  const budgetRatio = budgetLimitSek > 0 ? liveCostSek / budgetLimitSek : 0;
+  const budgetAlertStage: 'normal' | 'warning' | 'critical' =
+    budgetLimitSek > 0 && budgetRatio >= 1
+      ? 'critical'
+      : budgetLimitSek > 0 && budgetRatio >= 0.8
+      ? 'warning'
+      : 'normal';
+
+  useEffect(() => {
+    if (budgetAlertStage === 'normal') {
+      firedThresholdStageRef.current = 0;
+      return;
+    }
+    if (budgetAlertStage === 'warning' && firedThresholdStageRef.current < 1) {
+      firedThresholdStageRef.current = 1;
+      if (soundAlertsEnabled) playThresholdAlertChime('warning');
+    } else if (budgetAlertStage === 'critical' && firedThresholdStageRef.current < 2) {
+      firedThresholdStageRef.current = 2;
+      if (soundAlertsEnabled) playThresholdAlertChime('critical');
+    }
+  }, [budgetAlertStage, soundAlertsEnabled]);
 
   const decisionsCount = items.filter((i) => i.kind === 'decision').length;
   const actionsCount = items.filter((i) => i.kind === 'action').length;
@@ -314,6 +385,168 @@ export function App() {
       setShowRawParser(false);
     }
   };
+
+  const handleImportCalendarInvite = (inputOverride?: string) => {
+    const raw = (inputOverride ?? calendarInputText).trim();
+    if (!raw) return;
+
+    // Unfold RFC 5545 folded lines (CRLF/LF followed by space or tab)
+    const unfolded = raw.replace(/\r?\n[ \t]/g, '');
+    const lines = unfolded.split(/\r?\n/);
+
+    let parsedSummary = '';
+    let dtStart: Date | null = null;
+    let dtEnd: Date | null = null;
+    let attendeeCount = 0;
+    let descriptionText = '';
+
+    const agendaCandidateLines: string[] = [];
+
+    for (const line of lines) {
+      if (/^SUMMARY(?:;[^:]*)?:/i.test(line)) {
+        parsedSummary = line.replace(/^SUMMARY(?:;[^:]*)?:/i, '').trim();
+      } else if (/^DTSTART(?:;[^:]*)?:/i.test(line)) {
+        dtStart = parseIcsTimestamp(line.replace(/^DTSTART(?:;[^:]*)?:/i, ''));
+      } else if (/^DTEND(?:;[^:]*)?:/i.test(line)) {
+        dtEnd = parseIcsTimestamp(line.replace(/^DTEND(?:;[^:]*)?:/i, ''));
+      } else if (/^ATTENDEE(?:;[^:]*)?:/i.test(line)) {
+        attendeeCount += 1;
+      } else if (/^DESCRIPTION(?:;[^:]*)?:/i.test(line)) {
+        descriptionText = line
+          .replace(/^DESCRIPTION(?:;[^:]*)?:/i, '')
+          .replace(/\\n/gi, '\n')
+          .replace(/\\,/g, ',')
+          .trim();
+      } else if (
+        !/^(BEGIN|END|VERSION|PRODID|CALSCALE|METHOD|UID|DTSTAMP|ORGANIZER|LOCATION|STATUS|SEQUENCE|TRANSP)(?:;[^:]*)?:/i.test(
+          line
+        )
+      ) {
+        agendaCandidateLines.push(line);
+      }
+    }
+
+    if (parsedSummary) {
+      setMeetingTitle(parsedSummary);
+    }
+
+    let derivedMinutes = plannedMinutes;
+    if (dtStart && dtEnd && dtEnd.getTime() > dtStart.getTime()) {
+      const diffMins = Math.round((dtEnd.getTime() - dtStart.getTime()) / 60000);
+      if (diffMins >= 5 && diffMins <= 480) {
+        derivedMinutes = diffMins;
+        setPlannedMinutes(diffMins);
+      }
+    }
+
+    const sourceBody = descriptionText || agendaCandidateLines.join('\n');
+    const rawStepLines = sourceBody
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 2 && !/^agenda:?$/i.test(l));
+
+    const parsedSteps: AgendaStep[] = [];
+    rawStepLines.forEach((line, idx) => {
+      const cleanLine = line.replace(/^(\d+[.)]|[-*•])\s*/, '').trim();
+      if (!cleanLine) return;
+
+      // Match e.g. "(15 min)", "15 min:", "- 10m", "[20 min]"
+      const minMatch =
+        cleanLine.match(/\((\d{1,3})\s*(?:min|m)\)/i) ||
+        cleanLine.match(/\[(\d{1,3})\s*(?:min|m)\]/i) ||
+        cleanLine.match(/^(\d{1,3})\s*(?:min|m)\s*[-:–]\s*/i) ||
+        cleanLine.match(/[-–:]\s*(\d{1,3})\s*(?:min|m)$/i);
+
+      const mins = minMatch ? Math.max(1, Number(minMatch[1])) : 0;
+      const title = cleanLine
+        .replace(/\((\d{1,3})\s*(?:min|m)\)/i, '')
+        .replace(/\[(\d{1,3})\s*(?:min|m)\]/i, '')
+        .replace(/^(\d{1,3})\s*(?:min|m)\s*[-:–]\s*/i, '')
+        .replace(/[-–:]\s*(\d{1,3})\s*(?:min|m)$/i, '')
+        .trim();
+
+      if (title) {
+        parsedSteps.push({
+          id: `ics-${Date.now()}-${idx}`,
+          title,
+          minutes: mins,
+          completed: false,
+        });
+      }
+    });
+
+    if (parsedSteps.length > 0) {
+      const explicitSum = parsedSteps.reduce((s, a) => s + a.minutes, 0);
+      const zeroCount = parsedSteps.filter((a) => a.minutes === 0).length;
+      if (zeroCount > 0) {
+        const remaining = Math.max(zeroCount * 5, derivedMinutes - explicitSum);
+        const perZero = Math.max(5, Math.round(remaining / zeroCount));
+        parsedSteps.forEach((s) => {
+          if (s.minutes === 0) s.minutes = perZero;
+        });
+      }
+      const totalStepMins = parsedSteps.reduce((s, a) => s + a.minutes, 0);
+      if (!dtStart && totalStepMins >= 5) {
+        derivedMinutes = totalStepMins;
+        setPlannedMinutes(totalStepMins);
+      }
+      setAgenda(parsedSteps);
+    }
+
+    if (attendeeCount > 0) {
+      setRoles((prev) =>
+        prev.map((r, i) =>
+          i === 0
+            ? { ...r, count: Math.max(1, attendeeCount - 1) }
+            : i === 1
+            ? { ...r, count: 1 }
+            : { ...r, count: 0 }
+        )
+      );
+    }
+
+    playTickChime(880);
+    setCalendarImportNotice(
+      `Importerade "${parsedSummary || meetingTitle}" (${derivedMinutes} min, ${
+        parsedSteps.length || agenda.length
+      } agendapunkter${attendeeCount > 0 ? `, ${attendeeCount} deltagare` : ''})`
+    );
+    setCalendarInputText('');
+    setShowCalendarImporter(false);
+    setTimeout(() => setCalendarImportNotice(null), 5000);
+  };
+
+  const handleIcsFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const content = typeof reader.result === 'string' ? reader.result : '';
+      if (content) {
+        setCalendarInputText(content);
+        handleImportCalendarInvite(content);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const sampleIcsPayload = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'BEGIN:VEVENT',
+    'SUMMARY:Q4 Produkt- & Arkitekturbeslut (Harkco)',
+    'DTSTART:20261028T090000Z',
+    'DTEND:20261028T094500Z',
+    'ATTENDEE:mailto:viktor@harkco.se',
+    'ATTENDEE:mailto:anna@harkco.se',
+    'ATTENDEE:mailto:erik@harkco.se',
+    'ATTENDEE:mailto:linnea@harkco.se',
+    'ATTENDEE:mailto:oskar@harkco.se',
+    'DESCRIPTION:1. Mål & nuläge för Q4-lansering (10 min)\\n2. Beslut om API-gränser & prismodell (20 min)\\n3. @Ansvariga, risker & leveransplan (15 min)',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\n');
 
   const buildExportString = (mode: 'slack' | 'markdown') => {
     const dateStr = new Date().toLocaleDateString('sv-SE');
@@ -559,7 +792,49 @@ export function App() {
         </div>
 
         {/* HERO LIVE COST-TICKER ODOMETER */}
-        <div className="relative rounded-3xl bg-gradient-to-br from-slate-900 via-[#0b1222] to-slate-950 border-2 border-amber-500/30 p-6 sm:p-8 shadow-2xl overflow-hidden">
+        <div
+          className={`relative rounded-3xl bg-gradient-to-br from-slate-900 via-[#0b1222] to-slate-950 border-2 p-6 sm:p-8 shadow-2xl overflow-hidden transition-all duration-300 ${
+            budgetAlertStage === 'critical'
+              ? 'border-rose-500 shadow-rose-500/25'
+              : budgetAlertStage === 'warning'
+              ? 'border-amber-400 shadow-amber-500/20'
+              : 'border-amber-500/30'
+          }`}
+        >
+          {/* Live Cost-Alert Threshold Banner */}
+          {budgetAlertStage !== 'normal' && (
+            <div
+              className={`mb-5 px-4 py-3 rounded-2xl border flex flex-wrap items-center justify-between gap-2 text-xs font-bold ${
+                budgetAlertStage === 'critical'
+                  ? 'bg-rose-500/20 border-rose-500/50 text-rose-200 animate-pulse'
+                  : 'bg-amber-500/15 border-amber-400/40 text-amber-200'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0 text-amber-300" />
+                <span>
+                  {budgetAlertStage === 'critical'
+                    ? `🚨 KOSTNADSLARM: Mötesbudgeten på ${budgetLimitSek.toLocaleString(
+                        'sv-SE'
+                      )} kr är passerad (+${Math.round(
+                        liveCostSek - budgetLimitSek
+                      ).toLocaleString('sv-SE')} kr över taket) — lås beslut & avrunda!`
+                    : `⚠️ VARNINGSZON (${Math.round(
+                        budgetRatio * 100
+                      )}% av budgettaket på ${budgetLimitSek.toLocaleString(
+                        'sv-SE'
+                      )} kr): ${Math.max(
+                        0,
+                        Math.round(budgetLimitSek - liveCostSek)
+                      ).toLocaleString('sv-SE')} kr kvar!`}
+                </span>
+              </div>
+              <span className="font-mono text-[11px] uppercase px-2 py-0.5 rounded bg-slate-950/70">
+                Tak: {budgetLimitSek.toLocaleString('sv-SE')} kr
+              </span>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
             {/* Odometer Column */}
             <div className="lg:col-span-7 space-y-4">
@@ -621,6 +896,67 @@ export function App() {
                 </div>
               </div>
 
+              {/* Configurable SEK Budget Alert Threshold Bar */}
+              <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800/90 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] font-bold uppercase text-slate-400 mr-1">
+                    🔔 Kostnadslarm:
+                  </span>
+                  {[2500, 5000, 10000, 15000].map((presetSek) => (
+                    <button
+                      key={presetSek}
+                      onClick={() => {
+                        playTickChime(700);
+                        setBudgetLimitSek(presetSek);
+                      }}
+                      className={`px-2.5 py-1 rounded-lg font-mono text-xs font-bold cursor-pointer transition ${
+                        budgetLimitSek === presetSek
+                          ? 'bg-amber-400 text-slate-950 font-black'
+                          : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                      }`}
+                    >
+                      {presetSek.toLocaleString('sv-SE')} kr
+                    </button>
+                  ))}
+                  <div className="flex items-center gap-1 ml-1">
+                    <input
+                      type="number"
+                      step={500}
+                      min={500}
+                      value={budgetLimitSek}
+                      onChange={(e) =>
+                        setBudgetLimitSek(Math.max(0, Number(e.target.value)))
+                      }
+                      aria-label="Anpassat budgettak i SEK"
+                      className="w-20 px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 font-mono text-xs text-amber-300"
+                    />
+                    <span className="text-[11px] font-mono text-slate-500">kr</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setSoundAlertsEnabled(!soundAlertsEnabled)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 border cursor-pointer transition ${
+                    soundAlertsEnabled
+                      ? 'bg-emerald-500/15 border-emerald-400/40 text-emerald-300'
+                      : 'bg-slate-900 border-slate-800 text-slate-500'
+                  }`}
+                  title="Slå på/av ljudchime vid 80% och 100% av budgettaket"
+                >
+                  {soundAlertsEnabled ? (
+                    <>
+                      <Bell className="w-3 h-3" />
+                      <span>Chime PÅ</span>
+                    </>
+                  ) : (
+                    <>
+                      <BellOff className="w-3 h-3" />
+                      <span>Tyst</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
               {/* Timer Controls */}
               <div className="flex flex-wrap items-center gap-3 pt-2">
                 <button
@@ -660,9 +996,22 @@ export function App() {
 
                 <button
                   onClick={() => {
+                    if (burnRatePerSecSek > 0) {
+                      setElapsedSeconds((prev) => prev + 1000 / burnRatePerSecSek);
+                    }
+                  }}
+                  className="px-3.5 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-amber-500/40 text-xs font-mono font-bold text-amber-300 cursor-pointer transition"
+                  title="Simulera +1 000 kr på mötestaxametern för att testa kostnadslarmet"
+                >
+                  +1 000 kr
+                </button>
+
+                <button
+                  onClick={() => {
                     playTickChime(440);
                     setIsRunning(false);
                     setElapsedSeconds(0);
+                    firedThresholdStageRef.current = 0;
                   }}
                   className="px-3.5 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-400 hover:text-white flex items-center gap-1.5 cursor-pointer transition"
                 >
@@ -813,15 +1162,79 @@ export function App() {
 
             {/* Agenda Timebox Pacer */}
             <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-sm font-black uppercase tracking-wider text-cyan-400 flex items-center gap-2">
                   <Clock className="w-4 h-4" />
                   <span>Agenda & Tidbox-Pacer</span>
                 </h2>
-                <span className="text-xs font-mono text-slate-400">
-                  Totalt {agenda.reduce((s, a) => s + a.minutes, 0)} min
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowCalendarImporter(!showCalendarImporter)}
+                    className="px-2.5 py-1 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/40 text-cyan-300 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition"
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>
+                      {showCalendarImporter ? 'Stäng .ics-import' : '📅 Importera .ics / Agenda'}
+                    </span>
+                  </button>
+                  <span className="text-xs font-mono text-slate-400">
+                    Totalt {agenda.reduce((s, a) => s + a.minutes, 0)} min
+                  </span>
+                </div>
               </div>
+
+              {calendarImportNotice && (
+                <div className="px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-400/40 text-emerald-300 text-xs font-bold">
+                  ✅ {calendarImportNotice}
+                </div>
+              )}
+
+              {showCalendarImporter && (
+                <div className="p-3.5 rounded-2xl bg-slate-950 border border-cyan-400/40 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-cyan-200">
+                      Ladda upp <code className="text-amber-300">.ics</code> eller klistra in kalenderinbjudan / agenda:
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <label className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[11px] font-bold text-slate-200 flex items-center gap-1 cursor-pointer">
+                        <Upload className="w-3 h-3 text-cyan-300" />
+                        <span>Välj .ics-fil</span>
+                        <input
+                          type="file"
+                          accept=".ics,text/calendar"
+                          onChange={handleIcsFileUpload}
+                          className="hidden"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setCalendarInputText(sampleIcsPayload)}
+                        className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[11px] font-bold text-amber-300 cursor-pointer"
+                      >
+                        Exempel .ics
+                      </button>
+                    </div>
+                  </div>
+
+                  <textarea
+                    value={calendarInputText}
+                    onChange={(e) => setCalendarInputText(e.target.value)}
+                    rows={4}
+                    placeholder={`Klistra in VEVENT (.ics) eller agendarader, t.ex.:\n1. Kontext & Mål (10 min)\n2. Arkitekturval & API-kontrakt (20 min)\n3. Beslut & @Ansvariga (15 min)`}
+                    className="w-full p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono text-white focus:outline-none focus:border-cyan-400"
+                  />
+
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => handleImportCalendarInvite()}
+                      className="px-3.5 py-1.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-black text-xs cursor-pointer"
+                    >
+                      ⚡ Tolka tidbox & agenda
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 {agenda.map((step, idx) => {
