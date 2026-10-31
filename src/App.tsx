@@ -7,7 +7,7 @@ import {
   Plus,
   Minus,
   CheckCircle2,
-  Sparkles,
+  Circle,
   Copy,
   Check,
   Printer,
@@ -26,6 +26,12 @@ import {
   BellOff,
   Calendar,
   Upload,
+  ChevronDown,
+  SlidersHorizontal,
+  Coffee,
+  CheckSquare,
+  Square,
+  Sparkles,
 } from 'lucide-react';
 
 interface RoleTier {
@@ -83,7 +89,9 @@ let sharedAudioCtx: AudioContext | null = null;
 
 function playTickChime(freq = 660) {
   try {
-    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const AudioCtx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!sharedAudioCtx) {
       sharedAudioCtx = new AudioCtx();
     }
@@ -95,18 +103,20 @@ function playTickChime(freq = 660) {
     const gain = ctx.createGain();
     osc.type = 'sine';
     osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.06, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.16);
+    gain.gain.setValueAtTime(0.05, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.14);
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.start();
-    osc.stop(ctx.currentTime + 0.16);
+    osc.stop(ctx.currentTime + 0.14);
   } catch {}
 }
 
 function playThresholdAlertChime(level: 'warning' | 'critical') {
   try {
-    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const AudioCtx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!sharedAudioCtx) {
       sharedAudioCtx = new AudioCtx();
     }
@@ -116,17 +126,17 @@ function playThresholdAlertChime(level: 'warning' | 'critical') {
     }
     const notes = level === 'critical' ? [587.33, 783.99, 1046.5] : [523.25, 659.25];
     notes.forEach((freq, idx) => {
-      const start = ctx.currentTime + idx * 0.13;
+      const start = ctx.currentTime + idx * 0.12;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = level === 'critical' ? 'triangle' : 'sine';
       osc.frequency.setValueAtTime(freq, start);
-      gain.gain.setValueAtTime(0.09, start);
-      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.24);
+      gain.gain.setValueAtTime(0.08, start);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.22);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start(start);
-      osc.stop(start + 0.24);
+      osc.stop(start + 0.22);
     });
   } catch {}
 }
@@ -156,11 +166,16 @@ export function App() {
   const [soundAlertsEnabled, setSoundAlertsEnabled] = useState<boolean>(true);
   const firedThresholdStageRef = useRef<0 | 1 | 2>(0);
 
+  // Drawer / Modal Visibility
+  const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
+  const [isAgendaOpen, setIsAgendaOpen] = useState(false);
+  const [isArchiveOpen, setIsArchiveOpen] = useState(false);
+  const [isProModalOpen, setIsProModalOpen] = useState(false);
+
   // Agenda & Calendar (.ics) Importer State
   const [agenda, setAgenda] = useState<AgendaStep[]>(DEFAULT_AGENDA);
   const [newAgendaTitle, setNewAgendaTitle] = useState('');
   const [newAgendaMins, setNewAgendaMins] = useState(10);
-  const [showCalendarImporter, setShowCalendarImporter] = useState(false);
   const [calendarInputText, setCalendarInputText] = useState('');
   const [calendarImportNotice, setCalendarImportNotice] = useState<string | null>(null);
 
@@ -177,7 +192,7 @@ export function App() {
     {
       id: 'init-2',
       kind: 'action',
-      text: 'Verifiera /health och JS-bundle status i CI/CD-pipelinen',
+      text: 'Verifiera /health och JS-bundle status i Coolify-pipelinen',
       owner: 'Minihark',
       due: 'Fredag',
       done: false,
@@ -195,7 +210,6 @@ export function App() {
   const [copiedMode, setCopiedMode] = useState<string | null>(null);
   const [savedMeetings, setSavedMeetings] = useState<SavedMeeting[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [isProModalOpen, setIsProModalOpen] = useState(false);
 
   const lastTickRef = useRef<number | null>(null);
 
@@ -211,7 +225,7 @@ export function App() {
       .catch(() => {});
   }, []);
 
-  // Stopwatch loop (100ms resolution for smooth odometer)
+  // Stopwatch loop (100ms resolution for smooth Braun odometer)
   useEffect(() => {
     if (!isRunning) {
       lastTickRef.current = null;
@@ -270,12 +284,12 @@ export function App() {
   // Efficiency Grade
   const getEfficiencyGrade = () => {
     if (totalOutcomes >= 4 && costPerOutcomeSek <= 900) {
-      return { grade: 'A+', label: 'Högoktanigt beslutsmöte', color: 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10' };
+      return { grade: 'A+', label: 'Högoktanigt beslutsmöte', color: 'text-emerald-700 bg-emerald-50 border-emerald-300' };
     }
     if (totalOutcomes >= 2) {
-      return { grade: 'B+', label: 'Konstruktivt & målfokuserat', color: 'text-amber-300 border-amber-400/40 bg-amber-500/10' };
+      return { grade: 'B+', label: 'Konstruktivt & fokuserat', color: 'text-amber-800 bg-amber-50 border-amber-300' };
     }
-    return { grade: 'C', label: 'Fånga fler konkreta beslut/actions', color: 'text-rose-300 border-rose-400/40 bg-rose-500/10' };
+    return { grade: 'C', label: 'Fånga fler konkreta beslut', color: 'text-rose-700 bg-rose-50 border-rose-300' };
   };
   const efficiency = getEfficiencyGrade();
 
@@ -290,33 +304,23 @@ export function App() {
     return `${String(mins).padStart(2, '0')}:${String(remSecs).padStart(2, '0')}`;
   };
 
-  const applyPreset = (
-    title: string,
-    mins: number,
-    counts: Record<string, number>
-  ) => {
+  const applyPreset = (title: string, mins: number, counts: Record<string, number>) => {
     playTickChime(740);
     setMeetingTitle(title);
     setPlannedMinutes(mins);
-    setRoles((prev) =>
-      prev.map((r) => ({ ...r, count: counts[r.id] ?? 0 }))
-    );
+    setRoles((prev) => prev.map((r) => ({ ...r, count: counts[r.id] ?? 0 })));
   };
 
   const updateRoleCount = (id: string, delta: number) => {
     playTickChime(580);
     setRoles((prev) =>
-      prev.map((r) =>
-        r.id === id ? { ...r, count: Math.max(0, r.count + delta) } : r
-      )
+      prev.map((r) => (r.id === id ? { ...r, count: Math.max(0, r.count + delta) } : r))
     );
   };
 
   const updateRoleRate = (id: string, rate: number) => {
     setRoles((prev) =>
-      prev.map((r) =>
-        r.id === id ? { ...r, rateSekPerHour: Math.max(0, rate) } : r
-      )
+      prev.map((r) => (r.id === id ? { ...r, rateSekPerHour: Math.max(0, rate) } : r))
     );
   };
 
@@ -332,17 +336,14 @@ export function App() {
       due: newItemDue.trim() || 'Snarast',
       done: false,
     };
-    setItems((prev) => [...prev, item]);
+    setItems((prev) => [item, ...prev]);
     setNewItemText('');
     setNewItemOwner('');
   };
 
   const handleExtractFromRawNotes = () => {
     if (!rawNotes.trim()) return;
-    const lines = rawNotes
-      .split('\n')
-      .map((l) => l.trim())
-      .filter(Boolean);
+    const lines = rawNotes.split('\n').map((l) => l.trim()).filter(Boolean);
 
     const extracted: ExtractedItem[] = [];
     lines.forEach((line, idx) => {
@@ -380,7 +381,7 @@ export function App() {
 
     if (extracted.length > 0) {
       playTickChime(880);
-      setItems((prev) => [...prev, ...extracted]);
+      setItems((prev) => [...extracted, ...prev]);
       setRawNotes('');
       setShowRawParser(false);
     }
@@ -390,7 +391,6 @@ export function App() {
     const raw = (inputOverride ?? calendarInputText).trim();
     if (!raw) return;
 
-    // Unfold RFC 5545 folded lines (CRLF/LF followed by space or tab)
     const unfolded = raw.replace(/\r?\n[ \t]/g, '');
     const lines = unfolded.split(/\r?\n/);
 
@@ -399,7 +399,6 @@ export function App() {
     let dtEnd: Date | null = null;
     let attendeeCount = 0;
     let descriptionText = '';
-
     const agendaCandidateLines: string[] = [];
 
     for (const line of lines) {
@@ -450,19 +449,18 @@ export function App() {
       const cleanLine = line.replace(/^(\d+[.)]|[-*•])\s*/, '').trim();
       if (!cleanLine) return;
 
-      // Match e.g. "(15 min)", "15 min:", "- 10m", "[20 min]"
       const minMatch =
         cleanLine.match(/\((\d{1,3})\s*(?:min|m)\)/i) ||
         cleanLine.match(/\[(\d{1,3})\s*(?:min|m)\]/i) ||
-        cleanLine.match(/^(\d{1,3})\s*(?:min|m)\s*[-:–]\s*/i) ||
-        cleanLine.match(/[-–:]\s*(\d{1,3})\s*(?:min|m)$/i);
+        cleanLine.match(/^(\d{1,3})\s*(?:min|m)\s*(?:[-–:])\s*/i) ||
+        cleanLine.match(/(?:[-–:])\s*(\d{1,3})\s*(?:min|m)$/i);
 
       const mins = minMatch ? Math.max(1, Number(minMatch[1])) : 0;
       const title = cleanLine
         .replace(/\((\d{1,3})\s*(?:min|m)\)/i, '')
         .replace(/\[(\d{1,3})\s*(?:min|m)\]/i, '')
-        .replace(/^(\d{1,3})\s*(?:min|m)\s*[-:–]\s*/i, '')
-        .replace(/[-–:]\s*(\d{1,3})\s*(?:min|m)$/i, '')
+        .replace(/^(\d{1,3})\s*(?:min|m)\s*(?:[-–:])\s*/i, '')
+        .replace(/(?:[-–:])\s*(\d{1,3})\s*(?:min|m)$/i, '')
         .trim();
 
       if (title) {
@@ -512,7 +510,6 @@ export function App() {
       } agendapunkter${attendeeCount > 0 ? `, ${attendeeCount} deltagare` : ''})`
     );
     setCalendarInputText('');
-    setShowCalendarImporter(false);
     setTimeout(() => setCalendarImportNotice(null), 5000);
   };
 
@@ -530,23 +527,6 @@ export function App() {
     reader.readAsText(file);
     e.target.value = '';
   };
-
-  const sampleIcsPayload = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'BEGIN:VEVENT',
-    'SUMMARY:Q4 Produkt- & Arkitekturbeslut (Harkco)',
-    'DTSTART:20261028T090000Z',
-    'DTEND:20261028T094500Z',
-    'ATTENDEE:mailto:viktor@harkco.se',
-    'ATTENDEE:mailto:anna@harkco.se',
-    'ATTENDEE:mailto:erik@harkco.se',
-    'ATTENDEE:mailto:linnea@harkco.se',
-    'ATTENDEE:mailto:oskar@harkco.se',
-    'DESCRIPTION:1. Mål & nuläge för Q4-lansering (10 min)\\n2. Beslut om API-gränser & prismodell (20 min)\\n3. @Ansvariga, risker & leveransplan (15 min)',
-    'END:VEVENT',
-    'END:VCALENDAR',
-  ].join('\n');
 
   const buildExportString = (mode: 'slack' | 'markdown') => {
     const dateStr = new Date().toLocaleDateString('sv-SE');
@@ -568,7 +548,7 @@ export function App() {
         '',
         decisions.length > 0
           ? `✅ *BESLUT (${decisions.length}):*\n` +
-            decisions.map((d) => `• ${d.text} _(${d.owner})_`).join('\n')
+            decisions.map((d) => `• ${d.text} _(@${d.owner})_`).join('\n')
           : null,
         actions.length > 0
           ? `🚀 *ACTION ITEMS (${actions.length}):*\n` +
@@ -578,7 +558,7 @@ export function App() {
           : null,
         blockers.length > 0
           ? `⚠️ *RISKER / BLOCKERS (${blockers.length}):*\n` +
-            blockers.map((b) => `• ${b.text} _(${b.owner})_`).join('\n')
+            blockers.map((b) => `• ${b.text} _(@${b.owner})_`).join('\n')
           : null,
       ]
         .filter(Boolean)
@@ -670,989 +650,956 @@ export function App() {
   );
 
   return (
-    <div className="min-h-screen bg-[#060911] text-slate-100 flex flex-col">
-      {/* Top Header */}
-      <header className="sticky top-0 z-30 border-b border-slate-800/80 bg-[#060911]/90 backdrop-blur-md print:hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-rose-500 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-amber-500/20">
-              ⏱️
+    <div className="min-h-screen bg-[#F4F4F0] text-[#121212] flex flex-col font-sans selection:bg-[#EA580C] selection:text-white">
+      {/* 1. SWISS EDITORIAL MASTER HEADER */}
+      <header className="sticky top-0 z-30 border-b border-[#E2E2DC] bg-[#F4F4F0]/95 backdrop-blur-md px-4 sm:px-6 py-2.5 print:hidden">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+          {/* Brand & Inline Title */}
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="flex items-center gap-2 select-none">
+              <span className="w-6 h-6 rounded bg-[#121212] flex items-center justify-center text-white font-mono text-[11px] font-bold">
+                M
+              </span>
+              <span className="font-bold tracking-tight text-sm uppercase">
+                MötesKoll
+              </span>
+              <span className="text-[10px] font-mono text-[#666660] border border-[#D4D4CE] px-1 py-0.2 rounded bg-[#FFFFFF]">
+                INSTRUMENT 01
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-black text-lg tracking-tight text-white">
-                  MötesKoll
-                </span>
-                <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                  SEK Cost-Ticker & Action Studio
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 hidden sm:block">
-                Realtidskalkylator för möteskostnad, tidbox-puls & 1-klicks Slack/Markdown-protokoll
-              </p>
-            </div>
+
+            <span className="text-[#C8C8BF] hidden md:inline">/</span>
+
+            <input
+              type="text"
+              value={meetingTitle}
+              onChange={(e) => setMeetingTitle(e.target.value)}
+              placeholder="Namnge mötet..."
+              className="flex-1 sm:w-60 md:w-72 font-semibold text-xs sm:text-sm bg-transparent border-b border-transparent hover:border-[#C8C8BF] focus:border-[#EA580C] focus:outline-none py-0.5 text-[#121212]"
+            />
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Quiet Header Drawer Triggers */}
+          <div className="flex items-center gap-1.5 sm:gap-2 text-xs font-medium w-full sm:w-auto justify-end">
+            {/* Participants Drawer Trigger */}
             <button
-              onClick={() => window.print()}
-              className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 flex items-center gap-1.5 cursor-pointer transition"
+              onClick={() => {
+                playTickChime(680);
+                setIsParticipantsOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-[#E2E2DC] bg-[#FFFFFF] hover:border-[#121212] text-[#121212] transition cursor-pointer shadow-2xs"
+              title="Hantera deltagare och konsulttimarvoden"
             >
-              <Printer className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Mötes-Kvitto (PDF)</span>
+              <Users className="w-3.5 h-3.5 text-[#EA580C]" />
+              <span className="font-mono font-bold text-xs">{totalAttendees} pers</span>
+              <span className="text-[11px] text-[#666660] hidden md:inline">
+                ({Math.round(burnRatePerHourSek).toLocaleString('sv-SE')} kr/h)
+              </span>
+              <ChevronDown className="w-3 h-3 text-[#666660]" />
             </button>
 
+            {/* Agenda Drawer Trigger */}
+            <button
+              onClick={() => {
+                playTickChime(680);
+                setIsAgendaOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-[#E2E2DC] bg-[#FFFFFF] hover:border-[#121212] text-[#121212] transition cursor-pointer shadow-2xs"
+              title="Öppna agendapunkter och .ics-kalenderimport"
+            >
+              <Calendar className="w-3.5 h-3.5 text-[#666660]" />
+              <span className="text-xs">Agenda</span>
+              <span className="font-mono text-[10px] px-1 py-0.2 rounded bg-[#EFEFEA] text-[#666660]">
+                {agenda.filter((a) => a.completed).length}/{agenda.length}
+              </span>
+              <ChevronDown className="w-3 h-3 text-[#666660]" />
+            </button>
+
+            {/* Saved Archive Trigger */}
+            <button
+              onClick={() => {
+                playTickChime(680);
+                setIsArchiveOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-[#E2E2DC] bg-[#FFFFFF] hover:border-[#121212] text-[#121212] transition cursor-pointer shadow-2xs"
+              title="Öppna sparade möteskvitton (SQLite)"
+            >
+              <History className="w-3.5 h-3.5 text-[#666660]" />
+              <span className="hidden sm:inline text-xs">Arkiv</span>
+              <span className="font-mono text-[10px] px-1 py-0.2 rounded bg-[#EFEFEA] text-[#666660]">
+                {savedMeetings.length}
+              </span>
+            </button>
+
+            {/* Print Kvitto */}
+            <button
+              onClick={() => window.print()}
+              className="p-1.5 rounded border border-[#E2E2DC] bg-[#FFFFFF] hover:border-[#121212] text-[#121212] transition cursor-pointer shadow-2xs"
+              title="Skriv ut formellt möteskvitto / PDF"
+            >
+              <Printer className="w-3.5 h-3.5 text-[#666660]" />
+            </button>
+
+            {/* Pro Pill */}
             <button
               onClick={() => setIsProModalOpen(true)}
-              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:brightness-110 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 cursor-pointer transition"
+              className="px-2 py-1 rounded bg-[#EFEFEA] hover:bg-[#E2E2DC] border border-[#D4D4CE] font-mono font-bold text-[10px] text-[#666660] hover:text-[#121212] transition cursor-pointer"
             >
-              <Award className="w-3.5 h-3.5" />
-              <span>Team Pro</span>
+              PRO
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 print:hidden">
-        {/* Preset Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/70 border border-slate-800/90 rounded-2xl p-3.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-bold text-slate-400 flex items-center gap-1">
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
-              <span>Snabbmallar:</span>
-            </span>
-            <button
-              onClick={() =>
-                applyPreset('Daily Standup & Blockers', 15, {
-                  dev: 4,
-                  lead: 1,
-                  pm: 1,
-                  ux: 0,
-                  exec: 0,
-                })
-              }
-              className="px-2.5 py-1 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-bold text-slate-200 cursor-pointer transition"
-            >
-              ⚡ Standup (6 pers, 15m)
-            </button>
-            <button
-              onClick={() =>
-                applyPreset('Arkitektur & Systemdesign', 45, {
-                  dev: 2,
-                  lead: 2,
-                  pm: 0,
-                  ux: 0,
-                  exec: 0,
-                })
-              }
-              className="px-2.5 py-1 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-bold text-slate-200 cursor-pointer transition"
-            >
-              🏗️ Arkitektur-Review (4 pers, 45m)
-            </button>
-            <button
-              onClick={() =>
-                applyPreset('Sprint-Planering & Prioritering', 60, {
-                  dev: 5,
-                  lead: 1,
-                  pm: 1,
-                  ux: 1,
-                  exec: 0,
-                })
-              }
-              className="px-2.5 py-1 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-bold text-slate-200 cursor-pointer transition"
-            >
-              🎯 Sprint-Planering (8 pers, 60m)
-            </button>
-            <button
-              onClick={() =>
-                applyPreset('Kund-Steering & Leveransstatus', 45, {
-                  dev: 1,
-                  lead: 1,
-                  pm: 1,
-                  ux: 0,
-                  exec: 2,
-                })
-              }
-              className="px-2.5 py-1 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-bold text-slate-200 cursor-pointer transition"
-            >
-              💼 Kund-Steering (5 pers, 45m)
-            </button>
+      {/* 2. MAIN SWISS INSTRUMENT WORKSPACE (90% Visual Weight on Ticker & Decision Pad) */}
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 print:hidden">
+        
+        {/* BRAUN MASTER STOPWATCH & LIVE COST TICKER CARD */}
+        <section className="bg-[#FFFFFF] border-2 border-[#121212] rounded-lg shadow-sm p-5 sm:p-7 space-y-5">
+          {/* Top Bar: Live Status & Budget Threshold Badge */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E2DC] pb-4">
+            <div className="flex items-center gap-2">
+              <span
+                className={`w-2.5 h-2.5 rounded-full ${
+                  isRunning
+                    ? 'bg-[#EA580C] animate-pulse ring-2 ring-[#EA580C]/20'
+                    : 'bg-[#121212]'
+                }`}
+              />
+              <span className="font-mono text-xs uppercase tracking-wider font-bold">
+                {isRunning ? 'MÖTESTAXAMETER AKTIV' : 'MÖTE REDO FÖR START'}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span
+                className={`px-2 py-0.5 rounded border text-[11px] font-mono font-bold ${efficiency.color}`}
+              >
+                ROI: {efficiency.grade} • {efficiency.label}
+              </span>
+
+              {/* Sound Chime Toggle */}
+              <button
+                onClick={() => setSoundAlertsEnabled(!soundAlertsEnabled)}
+                className={`p-1 rounded border text-[11px] transition cursor-pointer ${
+                  soundAlertsEnabled
+                    ? 'bg-[#EFEFEA] border-[#C8C8BF] text-[#121212]'
+                    : 'bg-transparent border-transparent text-[#999990]'
+                }`}
+                title={soundAlertsEnabled ? 'Ljudlarm aktivt vid budgettak' : 'Tyst läge'}
+              >
+                {soundAlertsEnabled ? <Bell className="w-3.5 h-3.5 text-[#EA580C]" /> : <BellOff className="w-3.5 h-3.5" />}
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={meetingTitle}
-              onChange={(e) => setMeetingTitle(e.target.value)}
-              placeholder="Mötestitel..."
-              className="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-xs sm:text-sm font-bold text-white focus:outline-none focus:border-amber-400 w-56 sm:w-64"
-            />
-          </div>
-        </div>
+          {/* Odometer & Duration Readout */}
+          <div className="flex flex-col lg:flex-row lg:items-baseline justify-between gap-4">
+            <div className="space-y-1">
+              <div className="text-[11px] font-mono uppercase tracking-widest text-[#666660] font-bold">
+                ACKUMULERAD MÖTESKOSTNAD
+              </div>
+              <div className="font-mono font-extrabold text-5xl sm:text-7xl tracking-tighter text-[#121212] tabular-nums">
+                {liveCostSek.toLocaleString('sv-SE', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+                <span className="text-2xl sm:text-3xl text-[#EA580C] font-normal ml-2">
+                  SEK
+                </span>
+              </div>
+            </div>
 
-        {/* HERO LIVE COST-TICKER ODOMETER */}
-        <div
-          className={`relative rounded-3xl bg-gradient-to-br from-slate-900 via-[#0b1222] to-slate-950 border-2 p-6 sm:p-8 shadow-2xl overflow-hidden transition-all duration-300 ${
-            budgetAlertStage === 'critical'
-              ? 'border-rose-500 shadow-rose-500/25'
-              : budgetAlertStage === 'warning'
-              ? 'border-amber-400 shadow-amber-500/20'
-              : 'border-amber-500/30'
-          }`}
-        >
-          {/* Live Cost-Alert Threshold Banner */}
+            {/* Stopwatch Elapsed vs Planned Timebox */}
+            <div className="space-y-1 self-start lg:self-end text-left lg:text-right">
+              <div className="text-[11px] font-mono uppercase tracking-widest text-[#666660] font-bold">
+                TIDBOX ({plannedMinutes} MIN PLANERAT)
+              </div>
+              <div className="font-mono text-3xl sm:text-4xl font-bold text-[#121212] tabular-nums">
+                {formatDuration(elapsedSeconds)}
+                <span className="text-sm font-normal text-[#666660] ml-1">
+                  / {plannedMinutes}:00
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Precision Linear Timebox Progress Hairline */}
+          <div className="space-y-1">
+            <div className="w-full h-2 bg-[#EFEFEA] rounded-xs overflow-hidden border border-[#E2E2DC]">
+              <div
+                className={`h-full transition-all duration-200 ${
+                  progressPct >= 100 ? 'bg-[#DC2626]' : 'bg-[#EA580C]'
+                }`}
+                style={{ width: `${Math.max(1, progressPct)}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Live Critical / Warning Banner */}
           {budgetAlertStage !== 'normal' && (
             <div
-              className={`mb-5 px-4 py-3 rounded-2xl border flex flex-wrap items-center justify-between gap-2 text-xs font-bold ${
+              className={`px-3.5 py-2.5 rounded border text-xs font-mono font-bold flex items-center justify-between gap-3 ${
                 budgetAlertStage === 'critical'
-                  ? 'bg-rose-500/20 border-rose-500/50 text-rose-200 animate-pulse'
-                  : 'bg-amber-500/15 border-amber-400/40 text-amber-200'
+                  ? 'bg-[#FEF2F2] border-[#DC2626] text-[#DC2626]'
+                  : 'bg-[#FFFBEB] border-[#D97706] text-[#D97706]'
               }`}
             >
               <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 flex-shrink-0 text-amber-300" />
+                <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>
                   {budgetAlertStage === 'critical'
-                    ? `🚨 KOSTNADSLARM: Mötesbudgeten på ${budgetLimitSek.toLocaleString(
-                        'sv-SE'
-                      )} kr är passerad (+${Math.round(
-                        liveCostSek - budgetLimitSek
-                      ).toLocaleString('sv-SE')} kr över taket) — lås beslut & avrunda!`
-                    : `⚠️ VARNINGSZON (${Math.round(
-                        budgetRatio * 100
-                      )}% av budgettaket på ${budgetLimitSek.toLocaleString(
-                        'sv-SE'
-                      )} kr): ${Math.max(
-                        0,
-                        Math.round(budgetLimitSek - liveCostSek)
-                      ).toLocaleString('sv-SE')} kr kvar!`}
+                    ? `BUDGETTAK PASSERAT (${budgetLimitSek.toLocaleString('sv-SE')} kr) — lås beslut och avsluta!`
+                    : `VARNING: ${Math.round(budgetRatio * 100)}% av budgettaket (${budgetLimitSek.toLocaleString('sv-SE')} kr) är förbrukat.`}
                 </span>
               </div>
-              <span className="font-mono text-[11px] uppercase px-2 py-0.5 rounded bg-slate-950/70">
-                Tak: {budgetLimitSek.toLocaleString('sv-SE')} kr
+              <span>
+                {Math.round(liveCostSek).toLocaleString('sv-SE')} / {budgetLimitSek.toLocaleString('sv-SE')} kr
               </span>
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-            {/* Odometer Column */}
-            <div className="lg:col-span-7 space-y-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-xs font-black uppercase tracking-wider">
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      isRunning ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'
-                    }`}
-                  />
-                  {isRunning ? 'LIVE MÖTES-TAXAMETER AKTIV' : 'REDO ATT STARTA TIDBOX'}
-                </span>
-                <span className={`px-3 py-1 rounded-full border text-xs font-bold ${efficiency.color}`}>
-                  ROI-Betyg: {efficiency.grade} • {efficiency.label}
-                </span>
-              </div>
-
-              <div className="flex flex-wrap items-baseline gap-4">
-                <div className="font-mono text-5xl sm:text-7xl font-black tracking-tight text-white">
-                  {liveCostSek.toLocaleString('sv-SE', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                  <span className="text-2xl sm:text-3xl text-amber-400 ml-2">
-                    kr
-                  </span>
-                </div>
-                <div className="font-mono text-xl sm:text-2xl font-bold text-slate-400">
-                  ({formatDuration(elapsedSeconds)})
-                </div>
-              </div>
-
-              {/* Timebox Progress Bar */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs font-mono text-slate-400">
-                  <span>
-                    Bränntakt:{' '}
-                    <strong className="text-amber-300">
-                      {Math.round(burnRatePerMinSek)} kr/min
-                    </strong>{' '}
-                    ({Math.round(burnRatePerHourSek).toLocaleString('sv-SE')} kr/h)
-                  </span>
-                  <span>
-                    Planerad budget ({plannedMinutes} min):{' '}
-                    <strong className="text-white">
-                      {Math.round(plannedTotalCostSek).toLocaleString('sv-SE')} kr
-                    </strong>
-                  </span>
-                </div>
-                <div className="w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
-                  <div
-                    className={`h-full transition-all duration-300 ${
-                      progressPct >= 100
-                        ? 'bg-gradient-to-r from-rose-500 to-red-600'
-                        : 'bg-gradient-to-r from-emerald-400 via-amber-400 to-orange-500'
-                    }`}
-                    style={{ width: `${Math.max(2, progressPct)}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Configurable SEK Budget Alert Threshold Bar */}
-              <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800/90 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[11px] font-bold uppercase text-slate-400 mr-1">
-                    🔔 Kostnadslarm:
-                  </span>
-                  {[2500, 5000, 10000, 15000].map((presetSek) => (
-                    <button
-                      key={presetSek}
-                      onClick={() => {
-                        playTickChime(700);
-                        setBudgetLimitSek(presetSek);
-                      }}
-                      className={`px-2.5 py-1 rounded-lg font-mono text-xs font-bold cursor-pointer transition ${
-                        budgetLimitSek === presetSek
-                          ? 'bg-amber-400 text-slate-950 font-black'
-                          : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-                      }`}
-                    >
-                      {presetSek.toLocaleString('sv-SE')} kr
-                    </button>
-                  ))}
-                  <div className="flex items-center gap-1 ml-1">
-                    <input
-                      type="number"
-                      step={500}
-                      min={500}
-                      value={budgetLimitSek}
-                      onChange={(e) =>
-                        setBudgetLimitSek(Math.max(0, Number(e.target.value)))
-                      }
-                      aria-label="Anpassat budgettak i SEK"
-                      className="w-20 px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 font-mono text-xs text-amber-300"
-                    />
-                    <span className="text-[11px] font-mono text-slate-500">kr</span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setSoundAlertsEnabled(!soundAlertsEnabled)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 border cursor-pointer transition ${
-                    soundAlertsEnabled
-                      ? 'bg-emerald-500/15 border-emerald-400/40 text-emerald-300'
-                      : 'bg-slate-900 border-slate-800 text-slate-500'
-                  }`}
-                  title="Slå på/av ljudchime vid 80% och 100% av budgettaket"
-                >
-                  {soundAlertsEnabled ? (
-                    <>
-                      <Bell className="w-3 h-3" />
-                      <span>Chime PÅ</span>
-                    </>
-                  ) : (
-                    <>
-                      <BellOff className="w-3 h-3" />
-                      <span>Tyst</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Timer Controls */}
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                <button
-                  onClick={() => {
-                    playTickChime(isRunning ? 520 : 880);
-                    setIsRunning(!isRunning);
-                  }}
-                  className={`px-6 py-3 rounded-2xl font-black text-sm flex items-center gap-2 shadow-lg cursor-pointer transition ${
-                    isRunning
-                      ? 'bg-amber-500 hover:bg-amber-400 text-slate-950'
-                      : 'bg-emerald-400 hover:bg-emerald-300 text-slate-950'
-                  }`}
-                >
-                  {isRunning ? (
-                    <>
-                      <Pause className="w-4 h-4 fill-slate-950" />
-                      <span>Pausa taxameter</span>
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-4 h-4 fill-slate-950" />
-                      <span>Starta mötestimer</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => {
-                    playTickChime(640);
-                    setElapsedSeconds((prev) => prev + 300);
-                  }}
-                  className="px-3.5 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-mono font-bold text-slate-200 cursor-pointer transition"
-                  title="Simulera +5 minuter"
-                >
-                  +5 min
-                </button>
-
-                <button
-                  onClick={() => {
-                    if (burnRatePerSecSek > 0) {
-                      setElapsedSeconds((prev) => prev + 1000 / burnRatePerSecSek);
-                    }
-                  }}
-                  className="px-3.5 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-amber-500/40 text-xs font-mono font-bold text-amber-300 cursor-pointer transition"
-                  title="Simulera +1 000 kr på mötestaxametern för att testa kostnadslarmet"
-                >
-                  +1 000 kr
-                </button>
-
-                <button
-                  onClick={() => {
-                    playTickChime(440);
-                    setIsRunning(false);
-                    setElapsedSeconds(0);
-                    firedThresholdStageRef.current = 0;
-                  }}
-                  className="px-3.5 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-400 hover:text-white flex items-center gap-1.5 cursor-pointer transition"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Nollställ</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Right Metrics Grid */}
-            <div className="lg:col-span-5 grid grid-cols-2 gap-3">
-              <div className="p-4 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-1">
-                <div className="text-[11px] font-bold uppercase text-slate-400 flex items-center gap-1.5">
-                  <Users className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Deltagare i rummet</span>
-                </div>
-                <div className="text-2xl font-black font-mono text-white">
-                  {totalAttendees} pers
-                </div>
-                <div className="text-[11px] text-slate-500">
-                  Snitt {totalAttendees > 0 ? Math.round(burnRatePerHourSek / totalAttendees) : 0} kr/h per person
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-1">
-                <div className="text-[11px] font-bold uppercase text-slate-400 flex items-center gap-1.5">
-                  <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Kostnad / Beslut</span>
-                </div>
-                <div className="text-2xl font-black font-mono text-amber-400">
-                  {costPerOutcomeSek.toLocaleString('sv-SE')} kr
-                </div>
-                <div className="text-[11px] text-slate-500">
-                  {decisionsCount} beslut • {actionsCount} actions
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-1">
-                <div className="text-[11px] font-bold uppercase text-slate-400 flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Tidbox-längd</span>
-                </div>
-                <div className="flex items-center gap-1.5 pt-0.5">
-                  {[15, 30, 45, 60].map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => setPlannedMinutes(m)}
-                      className={`px-2 py-1 rounded-lg font-mono text-xs font-bold cursor-pointer transition ${
-                        plannedMinutes === m
-                          ? 'bg-amber-400 text-slate-950 font-black'
-                          : 'bg-slate-900 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      {m}m
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-1">
-                <div className="text-[11px] font-bold uppercase text-slate-400">
-                  Motsvarar i värde
-                </div>
-                <div className="text-base font-black font-mono text-cyan-300">
-                  ☕ {Math.max(1, Math.round(referenceCost / 52))} st fika
-                </div>
-                <div className="text-[11px] text-slate-500">
-                  eller {(referenceCost / 1150).toFixed(1)}h oavbruten kodtid
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* TWO-COLUMN WORKSPACE: LEFT = ROLES & AGENDA, RIGHT = ACTION EXTRACTOR & EXPORT */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column: Participants & Agenda Pacer */}
-          <div className="lg:col-span-5 space-y-6">
-            {/* Participant Roles Calculator */}
-            <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-black uppercase tracking-wider text-amber-400 flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  <span>Deltagare & Timarvoden</span>
-                </h2>
-                <button
-                  onClick={() => setIncludePayrollTax(!includePayrollTax)}
-                  className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border cursor-pointer transition ${
-                    includePayrollTax
-                      ? 'bg-emerald-500/15 border-emerald-400/40 text-emerald-300'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  {includePayrollTax ? '✓ +31.42% Arb.avgift' : '+31.42% Arb.avgift'}
-                </button>
-              </div>
-
-              <div className="space-y-2.5">
-                {roles.map((r) => (
-                  <div
-                    key={r.id}
-                    className={`p-3 rounded-2xl border flex items-center justify-between gap-2 transition ${
-                      r.count > 0
-                        ? 'bg-slate-950 border-slate-700'
-                        : 'bg-slate-950/40 border-slate-800/60 opacity-75'
-                    }`}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold text-white truncate">
-                        {r.labelSv}
-                      </div>
-                      <div className="flex items-center gap-1 mt-1">
-                        <input
-                          type="number"
-                          value={r.rateSekPerHour}
-                          onChange={(e) =>
-                            updateRoleRate(r.id, Number(e.target.value))
-                          }
-                          className="w-20 px-2 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-xs text-amber-300"
-                        />
-                        <span className="text-[11px] text-slate-400 font-mono">
-                          kr/h
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => updateRoleCount(r.id, -1)}
-                        className="w-8 h-8 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 cursor-pointer"
-                      >
-                        <Minus className="w-3.5 h-3.5" />
-                      </button>
-                      <span className="w-6 text-center font-mono font-black text-base text-white">
-                        {r.count}
-                      </span>
-                      <button
-                        onClick={() => updateRoleCount(r.id, 1)}
-                        className="w-8 h-8 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 border border-amber-400/40 flex items-center justify-center text-amber-300 cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Agenda Timebox Pacer */}
-            <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-sm font-black uppercase tracking-wider text-cyan-400 flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  <span>Agenda & Tidbox-Pacer</span>
-                </h2>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setShowCalendarImporter(!showCalendarImporter)}
-                    className="px-2.5 py-1 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/40 text-cyan-300 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition"
-                  >
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>
-                      {showCalendarImporter ? 'Stäng .ics-import' : '📅 Importera .ics / Agenda'}
-                    </span>
-                  </button>
-                  <span className="text-xs font-mono text-slate-400">
-                    Totalt {agenda.reduce((s, a) => s + a.minutes, 0)} min
-                  </span>
-                </div>
-              </div>
-
-              {calendarImportNotice && (
-                <div className="px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-400/40 text-emerald-300 text-xs font-bold">
-                  ✅ {calendarImportNotice}
-                </div>
-              )}
-
-              {showCalendarImporter && (
-                <div className="p-3.5 rounded-2xl bg-slate-950 border border-cyan-400/40 space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-cyan-200">
-                      Ladda upp <code className="text-amber-300">.ics</code> eller klistra in kalenderinbjudan / agenda:
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <label className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[11px] font-bold text-slate-200 flex items-center gap-1 cursor-pointer">
-                        <Upload className="w-3 h-3 text-cyan-300" />
-                        <span>Välj .ics-fil</span>
-                        <input
-                          type="file"
-                          accept=".ics,text/calendar"
-                          onChange={handleIcsFileUpload}
-                          className="hidden"
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setCalendarInputText(sampleIcsPayload)}
-                        className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[11px] font-bold text-amber-300 cursor-pointer"
-                      >
-                        Exempel .ics
-                      </button>
-                    </div>
-                  </div>
-
-                  <textarea
-                    value={calendarInputText}
-                    onChange={(e) => setCalendarInputText(e.target.value)}
-                    rows={4}
-                    placeholder={`Klistra in VEVENT (.ics) eller agendarader, t.ex.:\n1. Kontext & Mål (10 min)\n2. Arkitekturval & API-kontrakt (20 min)\n3. Beslut & @Ansvariga (15 min)`}
-                    className="w-full p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono text-white focus:outline-none focus:border-cyan-400"
-                  />
-
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      onClick={() => handleImportCalendarInvite()}
-                      className="px-3.5 py-1.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-black text-xs cursor-pointer"
-                    >
-                      ⚡ Tolka tidbox & agenda
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                {agenda.map((step, idx) => {
-                  const stepCost = Math.round(step.minutes * burnRatePerMinSek);
-                  return (
-                    <div
-                      key={step.id}
-                      onClick={() => {
-                        playTickChime(700);
-                        setAgenda((prev) =>
-                          prev.map((a) =>
-                            a.id === step.id
-                              ? { ...a, completed: !a.completed }
-                              : a
-                          )
-                        );
-                      }}
-                      className={`p-3 rounded-2xl border flex items-center justify-between gap-3 cursor-pointer transition ${
-                        step.completed
-                          ? 'bg-emerald-950/20 border-emerald-500/30 text-slate-400 line-through'
-                          : 'bg-slate-950 border-slate-800 hover:border-cyan-500/40'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <CheckCircle2
-                          className={`w-4 h-4 flex-shrink-0 ${
-                            step.completed ? 'text-emerald-400' : 'text-slate-600'
-                          }`}
-                        />
-                        <span className="text-xs font-bold truncate">
-                          {idx + 1}. {step.title}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0 font-mono text-xs">
-                        <span className="text-cyan-300 font-bold">
-                          {step.minutes}m
-                        </span>
-                        <span className="text-slate-500">({stepCost} kr)</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!newAgendaTitle.trim()) return;
-                  setAgenda((prev) => [
-                    ...prev,
-                    {
-                      id: `ag-${Date.now()}`,
-                      title: newAgendaTitle.trim(),
-                      minutes: newAgendaMins,
-                      completed: false,
-                    },
-                  ]);
-                  setNewAgendaTitle('');
+          {/* Primary Braun Stopwatch Controls */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  playTickChime(isRunning ? 520 : 880);
+                  setIsRunning(!isRunning);
                 }}
-                className="flex gap-2 pt-1"
+                className={`px-6 py-3 rounded font-mono font-black text-xs uppercase tracking-wider flex items-center gap-2 transition cursor-pointer shadow-sm ${
+                  isRunning
+                    ? 'bg-[#EA580C] hover:bg-[#C2410C] text-white'
+                    : 'bg-[#121212] hover:bg-black text-white'
+                }`}
               >
-                <input
-                  type="text"
-                  value={newAgendaTitle}
-                  onChange={(e) => setNewAgendaTitle(e.target.value)}
-                  placeholder="Ny agendapunkt..."
-                  className="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white"
-                />
-                <input
-                  type="number"
-                  value={newAgendaMins}
-                  onChange={(e) => setNewAgendaMins(Number(e.target.value))}
-                  className="w-16 px-2 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-center text-cyan-300"
-                />
+                {isRunning ? (
+                  <>
+                    <Pause className="w-4 h-4 fill-white" />
+                    <span>PAUSA TAXAMETER</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4 fill-white" />
+                    <span>STARTA MÖTE</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => {
+                  playTickChime(640);
+                  setElapsedSeconds((prev) => prev + 300);
+                }}
+                className="px-3 py-3 rounded bg-[#FFFFFF] hover:bg-[#EFEFEA] border border-[#C8C8BF] text-xs font-mono font-bold text-[#121212] transition cursor-pointer"
+                title="Simulera +5 minuter"
+              >
+                +5m
+              </button>
+
+              <button
+                onClick={() => {
+                  if (burnRatePerSecSek > 0) {
+                    setElapsedSeconds((prev) => prev + 1000 / burnRatePerSecSek);
+                  }
+                }}
+                className="px-3 py-3 rounded bg-[#FFFFFF] hover:bg-[#EFEFEA] border border-[#C8C8BF] text-xs font-mono font-bold text-[#EA580C] transition cursor-pointer"
+                title="Simulera +1 000 kr på taxametern"
+              >
+                +1 000 kr
+              </button>
+
+              <button
+                onClick={() => {
+                  playTickChime(440);
+                  setIsRunning(false);
+                  setElapsedSeconds(0);
+                  firedThresholdStageRef.current = 0;
+                }}
+                className="px-3 py-3 rounded bg-[#FFFFFF] hover:bg-[#EFEFEA] border border-[#C8C8BF] text-xs font-mono font-bold text-[#666660] hover:text-[#121212] transition cursor-pointer"
+                title="Återställ klocka"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Quick Budget Limit Selector */}
+            <div className="flex items-center gap-1.5 text-xs font-mono">
+              <span className="text-[11px] uppercase text-[#666660]">Tak:</span>
+              {[2500, 5000, 10000].map((b) => (
                 <button
-                  type="submit"
-                  className="px-3 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 text-xs font-bold cursor-pointer"
+                  key={b}
+                  onClick={() => {
+                    playTickChime(700);
+                    setBudgetLimitSek(b);
+                  }}
+                  className={`px-2 py-1 rounded text-xs font-bold transition cursor-pointer ${
+                    budgetLimitSek === b
+                      ? 'bg-[#121212] text-white'
+                      : 'bg-[#EFEFEA] border border-[#D4D4CE] text-[#666660] hover:text-[#121212]'
+                  }`}
                 >
-                  + Punkt
+                  {b.toLocaleString('sv-SE')} kr
                 </button>
-              </form>
+              ))}
             </div>
           </div>
 
-          {/* Right Column: Action Extractor & 1-Click Slack/Markdown Exporter */}
-          <div className="lg:col-span-7 space-y-6">
-            {/* Action-Item & Decision Studio */}
-            <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <h2 className="text-sm font-black uppercase tracking-wider text-amber-400 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4" />
-                    <span>Beslut & Action-Item Extraktor</span>
-                  </h2>
-                  <p className="text-xs text-slate-400">
-                    Logga beslut och @ansvariga direkt — eller klistra in råa mötesanteckningar
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => setShowRawParser(!showRawParser)}
-                  className="px-3 py-1.5 rounded-xl bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/40 text-amber-300 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition"
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>
-                    {showRawParser
-                      ? 'Dölj råtext-tolk'
-                      : '⚡ Extrahera ur råa anteckningar'}
-                  </span>
-                </button>
-              </div>
-
-              {/* Smart Raw Notes Parser Drawer */}
-              {showRawParser && (
-                <div className="p-4 rounded-2xl bg-slate-950 border border-amber-400/40 space-y-3">
-                  <div className="text-xs font-bold text-amber-200">
-                    Klistra in råa anteckningar (stöder <code className="text-cyan-300">BESLUT:</code>,{' '}
-                    <code className="text-cyan-300">TODO:</code>,{' '}
-                    <code className="text-cyan-300">RISK:</code>,{' '}
-                    <code className="text-cyan-300">@namn</code> och veckodagar):
-                  </div>
-                  <textarea
-                    value={rawNotes}
-                    onChange={(e) => setRawNotes(e.target.value)}
-                    rows={4}
-                    placeholder={`Exempel:\nBESLUT: Vi kör Stripe + Swish direkt utan tredjeparts-annonser @Viktor\nTODO: @Erik sätt upp SQLite-backuper innan fredag\nRISK: Tredjeparts-API har rate-limit vid hög last @Anna`}
-                    className="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono text-white focus:outline-none focus:border-amber-400"
-                  />
-                  <div className="flex justify-end gap-2">
-                    <button
-                      onClick={handleExtractFromRawNotes}
-                      className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs cursor-pointer"
-                    >
-                      ✨ Extrahera Beslut & Actions nu
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Quick Add Form */}
-              <form
-                onSubmit={handleAddItem}
-                className="grid grid-cols-1 sm:grid-cols-12 gap-2"
-              >
-                <select
-                  value={newItemKind}
-                  onChange={(e) => setNewItemKind(e.target.value as ItemKind)}
-                  className="sm:col-span-3 px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs font-bold text-white"
-                >
-                  <option value="action">🎯 Action-Item</option>
-                  <option value="decision">✅ Beslut</option>
-                  <option value="blocker">⚠️ Risk / Blocker</option>
-                </select>
-                <input
-                  type="text"
-                  value={newItemText}
-                  onChange={(e) => setNewItemText(e.target.value)}
-                  placeholder="Vad ska göras eller vad beslutades?"
-                  className="sm:col-span-5 px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-400"
-                />
-                <input
-                  type="text"
-                  value={newItemOwner}
-                  onChange={(e) => setNewItemOwner(e.target.value)}
-                  placeholder="@Ansvarig"
-                  className="sm:col-span-2 px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white"
-                />
-                <button
-                  type="submit"
-                  className="sm:col-span-2 px-3 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs cursor-pointer transition"
-                >
-                  + Lägg till
-                </button>
-              </form>
-
-              {/* Captured Items List */}
-              <div className="space-y-2">
-                {items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-3 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-3"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span
-                        className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase flex-shrink-0 ${
-                          item.kind === 'decision'
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                            : item.kind === 'blocker'
-                            ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                            : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                        }`}
-                      >
-                        {item.kind === 'decision'
-                          ? '✅ Beslut'
-                          : item.kind === 'blocker'
-                          ? '⚠️ Risk'
-                          : '🎯 Action'}
-                      </span>
-                      <span className="text-xs sm:text-sm font-semibold text-white truncate">
-                        {item.text}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-mono text-cyan-300">
-                        @{item.owner}
-                      </span>
-                      <span className="text-[11px] font-mono text-slate-500 hidden sm:inline">
-                        {item.due}
-                      </span>
-                      <button
-                        onClick={() =>
-                          setItems((prev) =>
-                            prev.filter((i) => i.id !== item.id)
-                          )
-                        }
-                        className="p-1 text-slate-500 hover:text-rose-400 cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+          {/* Precision Metrics Ledger Strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 border-t border-[#E2E2DC] text-xs font-mono">
+            <div className="p-2.5 rounded bg-[#FBFBFA] border border-[#E2E2DC]">
+              <div className="text-[10px] uppercase text-[#666660]">BRÄNNTAKT</div>
+              <div className="font-bold text-sm text-[#121212] mt-0.5">
+                {Math.round(burnRatePerMinSek)} kr/min
               </div>
             </div>
 
-            {/* Instant Slack & Markdown Exporter + Save to SQLite */}
-            <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setExportFormat('slack')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-black cursor-pointer transition ${
-                      exportFormat === 'slack'
-                        ? 'bg-amber-400 text-slate-950'
-                        : 'bg-slate-950 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    💬 Slack / Teams-format
-                  </button>
-                  <button
-                    onClick={() => setExportFormat('markdown')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-black cursor-pointer transition ${
-                      exportFormat === 'markdown'
-                        ? 'bg-amber-400 text-slate-950'
-                        : 'bg-slate-950 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    📝 Markdown (Notion / GitHub)
-                  </button>
-                </div>
+            <div className="p-2.5 rounded bg-[#FBFBFA] border border-[#E2E2DC]">
+              <div className="text-[10px] uppercase text-[#666660]">SNITT / BESLUT</div>
+              <div className="font-bold text-sm text-[#EA580C] mt-0.5">
+                {costPerOutcomeSek.toLocaleString('sv-SE')} kr
+              </div>
+            </div>
 
-                <div className="flex flex-wrap items-center gap-2">
+            <div className="p-2.5 rounded bg-[#FBFBFA] border border-[#E2E2DC]">
+              <div className="text-[10px] uppercase text-[#666660]">DELTAGARE</div>
+              <div className="font-bold text-sm text-[#121212] mt-0.5">
+                {totalAttendees} personer
+              </div>
+            </div>
+
+            <div className="p-2.5 rounded bg-[#FBFBFA] border border-[#E2E2DC]">
+              <div className="text-[10px] uppercase text-[#666660]">MOTSVARAR FIKA</div>
+              <div className="font-bold text-sm text-[#121212] mt-0.5 flex items-center gap-1">
+                <Coffee className="w-3.5 h-3.5 text-[#666660]" />
+                <span>{Math.max(1, Math.round(referenceCost / 52))} koppar</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* SWISS ACTION & DECISION LEDGER (THE PAD) */}
+        <section className="bg-[#FFFFFF] border-2 border-[#121212] rounded-lg shadow-sm p-5 sm:p-7 space-y-5">
+          {/* Pad Header & Quick Raw Notes Toggle */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E2DC] pb-4">
+            <div>
+              <div className="font-mono text-[10px] uppercase tracking-widest text-[#EA580C] font-bold block">
+                BESLUTSPROTOKOLL & RESULTAT
+              </div>
+              <h2 className="font-bold text-xl tracking-tight text-[#121212]">
+                Action-Item & Beslutsblock{' '}
+                <span className="font-mono text-xs font-normal text-[#666660]">
+                  ({decisionsCount} beslut • {actionsCount} actions)
+                </span>
+              </h2>
+            </div>
+
+            <button
+              onClick={() => setShowRawParser(!showRawParser)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#EFEFEA] hover:bg-[#E2E2DC] border border-[#C8C8BF] text-xs font-medium text-[#121212] transition cursor-pointer"
+            >
+              <FileText className="w-3.5 h-3.5 text-[#EA580C]" />
+              <span>{showRawParser ? 'Dölj råtext-tolk' : 'Klistra in råa anteckningar'}</span>
+            </button>
+          </div>
+
+          {/* Collapsible Raw Notes Parser */}
+          {showRawParser && (
+            <div className="p-4 rounded border border-[#C8C8BF] bg-[#FBFBFA] space-y-3 animate-in fade-in duration-150">
+              <div className="text-xs font-mono text-[#666660]">
+                Klistra in mötesanteckningar med <strong className="text-[#121212]">BESLUT:</strong>,{' '}
+                <strong className="text-[#121212]">TODO:</strong>, <strong className="text-[#121212]">RISK:</strong>,{' '}
+                och <strong className="text-[#EA580C]">@namn</strong>:
+              </div>
+              <textarea
+                value={rawNotes}
+                onChange={(e) => setRawNotes(e.target.value)}
+                rows={4}
+                placeholder={`BESLUT: Kör Stripe + Swish direkt utan tredjeparts-annonser @Viktor\nTODO: Sätt upp SQLite-backuper innan fredag @Erik\nRISK: Tredjeparts-API har rate-limit vid hög last @Anna`}
+                className="w-full p-3 rounded border border-[#C8C8BF] bg-[#FFFFFF] text-xs font-mono text-[#121212] focus:outline-none focus:border-[#EA580C]"
+              />
+              <div className="flex justify-end">
+                <button
+                  onClick={handleExtractFromRawNotes}
+                  className="px-4 py-2 rounded bg-[#121212] hover:bg-black text-white font-mono text-xs font-bold transition cursor-pointer"
+                >
+                  ⚡ Tolka beslut & actions nu
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Quick Item Add Form */}
+          <form
+            onSubmit={handleAddItem}
+            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-[#FBFBFA] border border-[#E2E2DC] p-2 rounded"
+          >
+            <select
+              value={newItemKind}
+              onChange={(e) => setNewItemKind(e.target.value as ItemKind)}
+              className="px-2.5 py-1.5 rounded bg-[#FFFFFF] border border-[#C8C8BF] text-xs font-bold text-[#121212] focus:outline-none"
+            >
+              <option value="action">🎯 Action</option>
+              <option value="decision">✅ Beslut</option>
+              <option value="blocker">⚠️ Risk</option>
+            </select>
+
+            <input
+              type="text"
+              value={newItemText}
+              onChange={(e) => setNewItemText(e.target.value)}
+              placeholder="Beskriv beslut eller åtgärd..."
+              className="flex-1 px-3 py-1.5 rounded bg-[#FFFFFF] border border-[#C8C8BF] text-xs text-[#121212] focus:outline-none focus:border-[#EA580C]"
+            />
+
+            <input
+              type="text"
+              value={newItemOwner}
+              onChange={(e) => setNewItemOwner(e.target.value)}
+              placeholder="@Ansvarig"
+              className="w-28 px-2.5 py-1.5 rounded bg-[#FFFFFF] border border-[#C8C8BF] text-xs font-mono text-[#121212] focus:outline-none"
+            />
+
+            <button
+              type="submit"
+              className="px-4 py-1.5 rounded bg-[#121212] hover:bg-black text-white font-mono font-bold text-xs uppercase transition cursor-pointer"
+            >
+              + Lägg till
+            </button>
+          </form>
+
+          {/* Captured Items List */}
+          <div className="divide-y divide-[#E2E2DC] border border-[#E2E2DC] rounded bg-[#FFFFFF]">
+            {items.map((item) => (
+              <div
+                key={item.id}
+                className={`p-3 sm:px-4 sm:py-3 flex items-center justify-between gap-3 transition ${
+                  item.done ? 'bg-[#FBFBFA] opacity-60 line-through' : 'hover:bg-[#FBFBFA]'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
                   <button
-                    onClick={() => handleCopyExport(exportFormat)}
-                    className="px-4 py-2 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black text-xs flex items-center gap-1.5 cursor-pointer shadow-md transition"
+                    onClick={() =>
+                      setItems((prev) =>
+                        prev.map((i) => (i.id === item.id ? { ...i, done: !i.done } : i))
+                      )
+                    }
+                    className="text-[#666660] hover:text-[#121212] shrink-0 cursor-pointer"
                   >
-                    {copiedMode === exportFormat ? (
-                      <>
-                        <Check className="w-4 h-4" />
-                        <span>Kopierat!</span>
-                      </>
+                    {item.done ? (
+                      <CheckSquare className="w-4 h-4 text-[#16A34A]" />
                     ) : (
-                      <>
-                        <Copy className="w-4 h-4" />
-                        <span>
-                          Kopiera{' '}
-                          {exportFormat === 'slack' ? 'Slack-text' : 'Markdown'}
-                        </span>
-                      </>
+                      <Square className="w-4 h-4" />
                     )}
                   </button>
 
-                  <button
-                    onClick={handleSaveMeeting}
-                    disabled={isSaving}
-                    className="px-4 py-2 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-black text-xs flex items-center gap-1.5 cursor-pointer shadow-md transition"
+                  <span
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase shrink-0 ${
+                      item.kind === 'decision'
+                        ? 'bg-[#ECFDF5] text-[#16A34A] border border-[#A7F3D0]'
+                        : item.kind === 'blocker'
+                        ? 'bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA]'
+                        : 'bg-[#FFF7ED] text-[#EA580C] border border-[#FFEDD5]'
+                    }`}
                   >
-                    <Save className="w-4 h-4" />
-                    <span>
-                      {isSaving ? 'Sparar...' : 'Spara möte (SQLite)'}
-                    </span>
+                    {item.kind === 'decision'
+                      ? 'BESLUT'
+                      : item.kind === 'blocker'
+                      ? 'RISK'
+                      : 'ACTION'}
+                  </span>
+
+                  <span className="text-xs sm:text-sm font-medium text-[#121212] truncate">
+                    {item.text}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="font-mono text-xs text-[#EA580C] font-semibold">
+                    @{item.owner}
+                  </span>
+                  <span className="text-[11px] font-mono text-[#666660] hidden sm:inline">
+                    ({item.due})
+                  </span>
+                  <button
+                    onClick={() =>
+                      setItems((prev) => prev.filter((i) => i.id !== item.id))
+                    }
+                    className="p-1 text-[#999990] hover:text-[#DC2626] transition cursor-pointer"
+                    title="Ta bort"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
+            ))}
+          </div>
 
-              <pre className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs font-mono text-slate-200 whitespace-pre-wrap overflow-x-auto leading-relaxed">
-                {buildExportString(exportFormat)}
-              </pre>
+          {/* 1-Click Export Bar (Slack / Markdown & SQLite Save) */}
+          <div className="pt-3 border-t border-[#E2E2DC] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-1.5 bg-[#EFEFEA] p-0.5 rounded border border-[#E2E2DC] text-xs font-mono">
+              <button
+                onClick={() => setExportFormat('slack')}
+                className={`px-2.5 py-1 rounded transition cursor-pointer ${
+                  exportFormat === 'slack'
+                    ? 'bg-[#121212] text-white font-bold'
+                    : 'text-[#666660] hover:text-[#121212]'
+                }`}
+              >
+                Slack / Teams
+              </button>
+              <button
+                onClick={() => setExportFormat('markdown')}
+                className={`px-2.5 py-1 rounded transition cursor-pointer ${
+                  exportFormat === 'markdown'
+                    ? 'bg-[#121212] text-white font-bold'
+                    : 'text-[#666660] hover:text-[#121212]'
+                }`}
+              >
+                Markdown (Notion)
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleCopyExport(exportFormat)}
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded bg-[#121212] hover:bg-black text-white font-mono text-xs font-bold transition cursor-pointer shadow-xs"
+              >
+                {copiedMode === exportFormat ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-[#22C55E]" />
+                    <span>Kopierat!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Kopiera protokoll</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={handleSaveMeeting}
+                disabled={isSaving}
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded bg-[#FFFFFF] hover:bg-[#EFEFEA] border border-[#121212] text-[#121212] font-mono text-xs font-bold transition cursor-pointer shadow-xs"
+              >
+                <Save className="w-3.5 h-3.5 text-[#EA580C]" />
+                <span>{isSaving ? 'Sparar...' : 'Spara i Arkiv'}</span>
+              </button>
             </div>
           </div>
-        </div>
+        </section>
+      </main>
 
-        {/* Saved Meetings History (SQLite Persisted) */}
-        {savedMeetings.length > 0 && (
-          <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-2">
-                <History className="w-4 h-4" />
-                <span>Sparade Mötes-Kvitton i Databasen ({savedMeetings.length})</span>
-              </h3>
+      {/* 3. QUIET DRAWERS / MODALS */}
+
+      {/* DRAWER: PARTICIPANTS & HOURLY RATES */}
+      {isParticipantsOpen && (
+        <div
+          onClick={() => setIsParticipantsOpen(false)}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-lg w-full bg-[#FFFFFF] border-2 border-[#121212] rounded-lg shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-150"
+          >
+            <div className="flex items-center justify-between border-b border-[#E2E2DC] pb-3">
+              <div>
+                <h3 className="font-bold text-lg text-[#121212]">
+                  Deltagare & Timarvoden
+                </h3>
+                <p className="text-xs text-[#666660]">
+                  Ställ in antal deltagare och marknadsarvoden per roll
+                </p>
+              </div>
+              <button
+                onClick={() => setIsParticipantsOpen(false)}
+                className="p-1 rounded text-[#666660] hover:text-[#121212] cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {savedMeetings.map((m) => (
-                <div
-                  key={m.id}
-                  className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col justify-between gap-3"
+
+            {/* Quick Presets */}
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-mono uppercase text-[#666660] block font-bold">
+                Snabbmallar:
+              </span>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  onClick={() =>
+                    applyPreset('Daily Standup & Blockers', 15, {
+                      dev: 4,
+                      lead: 1,
+                      pm: 1,
+                      ux: 0,
+                      exec: 0,
+                    })
+                  }
+                  className="p-2 rounded bg-[#FBFBFA] border border-[#E2E2DC] hover:border-[#121212] text-left text-xs font-semibold transition cursor-pointer"
                 >
-                  <div>
-                    <div className="flex items-start justify-between gap-2">
-                      <h4 className="font-bold text-sm text-white truncate">
-                        {m.title}
-                      </h4>
-                      <button
-                        onClick={() => handleDeleteSavedMeeting(m.id)}
-                        className="text-slate-500 hover:text-rose-400 cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                  ⚡ Standup (6p, 15m)
+                </button>
+                <button
+                  onClick={() =>
+                    applyPreset('Arkitektur & Systemdesign', 45, {
+                      dev: 2,
+                      lead: 2,
+                      pm: 0,
+                      ux: 0,
+                      exec: 0,
+                    })
+                  }
+                  className="p-2 rounded bg-[#FBFBFA] border border-[#E2E2DC] hover:border-[#121212] text-left text-xs font-semibold transition cursor-pointer"
+                >
+                  🏗️ Arkitektur (4p, 45m)
+                </button>
+                <button
+                  onClick={() =>
+                    applyPreset('Sprint-Planering', 60, {
+                      dev: 5,
+                      lead: 1,
+                      pm: 1,
+                      ux: 1,
+                      exec: 0,
+                    })
+                  }
+                  className="p-2 rounded bg-[#FBFBFA] border border-[#E2E2DC] hover:border-[#121212] text-left text-xs font-semibold transition cursor-pointer"
+                >
+                  🎯 Sprint (8p, 60m)
+                </button>
+                <button
+                  onClick={() =>
+                    applyPreset('Kund-Steering', 45, {
+                      dev: 1,
+                      lead: 1,
+                      pm: 1,
+                      ux: 0,
+                      exec: 2,
+                    })
+                  }
+                  className="p-2 rounded bg-[#FBFBFA] border border-[#E2E2DC] hover:border-[#121212] text-left text-xs font-semibold transition cursor-pointer"
+                >
+                  💼 Steering (5p, 45m)
+                </button>
+              </div>
+            </div>
+
+            {/* Roles Table */}
+            <div className="space-y-2">
+              {roles.map((r) => (
+                <div
+                  key={r.id}
+                  className="p-2.5 rounded border border-[#E2E2DC] bg-[#FBFBFA] flex items-center justify-between gap-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-bold text-[#121212] truncate">
+                      {r.labelSv}
                     </div>
-                    <div className="text-xs font-mono text-slate-400 mt-1">
-                      {new Date(m.createdAt).toLocaleDateString('sv-SE')} •{' '}
-                      {m.attendeeCount} delt • {Math.round(m.durationSeconds / 60)} min
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <input
+                        type="number"
+                        value={r.rateSekPerHour}
+                        onChange={(e) => updateRoleRate(r.id, Number(e.target.value))}
+                        className="w-20 px-1.5 py-0.5 rounded bg-white border border-[#C8C8BF] font-mono text-xs text-[#121212]"
+                      />
+                      <span className="text-[11px] font-mono text-[#666660]">kr/h</span>
                     </div>
                   </div>
-                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono">
-                    <span className="font-black text-amber-400 text-sm">
-                      {Math.round(m.totalCostSek).toLocaleString('sv-SE')} kr
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => updateRoleCount(r.id, -1)}
+                      className="w-7 h-7 rounded border border-[#C8C8BF] bg-white hover:bg-[#EFEFEA] flex items-center justify-center text-[#121212] cursor-pointer"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="w-6 text-center font-mono font-bold text-sm text-[#121212]">
+                      {r.count}
                     </span>
-                    <span className="text-emerald-300">
-                      ✅ {m.decisionsCount} beslut • 🎯 {m.actionsCount} actions
-                    </span>
+                    <button
+                      onClick={() => updateRoleCount(r.id, 1)}
+                      className="w-7 h-7 rounded border border-[#C8C8BF] bg-white hover:bg-[#EFEFEA] flex items-center justify-center text-[#121212] cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-        )}
-      </main>
 
-      {/* PRINTABLE MEETING ROI RECEIPT */}
-      <div
-        id="moteskoll-printable-receipt"
-        className="hidden print:block p-8 bg-white text-slate-900 space-y-6"
-      >
-        <div className="border-b-2 border-slate-900 pb-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-black uppercase">
-              MÖTESKOLL — MÖTESKVITTO & BESLUTSPROTOKOLL
-            </h1>
-            <p className="text-sm font-bold text-slate-600">{meetingTitle}</p>
-          </div>
-          <div className="text-right font-mono text-sm">
-            <div>Datum: {new Date().toLocaleDateString('sv-SE')}</div>
-            <div>Deltagare: {totalAttendees} personer</div>
+            {/* Payroll Tax & Close */}
+            <div className="flex items-center justify-between pt-3 border-t border-[#E2E2DC]">
+              <button
+                onClick={() => setIncludePayrollTax(!includePayrollTax)}
+                className={`px-3 py-1.5 rounded border text-xs font-bold transition cursor-pointer ${
+                  includePayrollTax
+                    ? 'bg-[#121212] text-white border-[#121212]'
+                    : 'bg-[#FBFBFA] border-[#C8C8BF] text-[#666660]'
+                }`}
+              >
+                {includePayrollTax ? '✓ Inkl. 31.42% Arbetsgivaravgift' : '+ 31.42% Arbetsgivaravgift'}
+              </button>
+
+              <button
+                onClick={() => setIsParticipantsOpen(false)}
+                className="px-4 py-1.5 rounded bg-[#EA580C] hover:bg-[#C2410C] text-white font-mono text-xs font-bold transition cursor-pointer"
+              >
+                Klar
+              </button>
+            </div>
           </div>
         </div>
+      )}
 
-        <div className="grid grid-cols-3 gap-4 font-mono border-b border-slate-300 pb-4">
-          <div>
-            <div className="text-xs uppercase text-slate-500">Möteskostnad</div>
-            <div className="text-xl font-black">
-              {Math.round(referenceCost).toLocaleString('sv-SE')} SEK
-            </div>
-          </div>
-          <div>
-            <div className="text-xs uppercase text-slate-500">
-              Kostnad per Beslut/Action
-            </div>
-            <div className="text-xl font-black">
-              {costPerOutcomeSek.toLocaleString('sv-SE')} SEK
-            </div>
-          </div>
-          <div>
-            <div className="text-xs uppercase text-slate-500">ROI-Betyg</div>
-            <div className="text-xl font-black">{efficiency.grade}</div>
-          </div>
-        </div>
-
-        <pre className="text-xs font-mono whitespace-pre-wrap">
-          {buildExportString('markdown')}
-        </pre>
-      </div>
-
-      {/* PRO UNLOCK MODAL (Direct Value Exchange, Zero Ads) */}
-      {isProModalOpen && (
+      {/* DRAWER: AGENDA & .ICS IMPORTER */}
+      {isAgendaOpen && (
         <div
-          onClick={() => setIsProModalOpen(false)}
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+          onClick={() => setIsAgendaOpen(false)}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="max-w-md w-full bg-slate-900 border border-amber-400/40 rounded-3xl p-6 space-y-4 shadow-2xl"
+            className="max-w-lg w-full bg-[#FFFFFF] border-2 border-[#121212] rounded-lg shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto"
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-amber-400 font-black text-base">
-                <Award className="w-5 h-5" />
+            <div className="flex items-center justify-between border-b border-[#E2E2DC] pb-3">
+              <div>
+                <h3 className="font-bold text-lg text-[#121212]">
+                  Agenda & Tidbox-Pacer
+                </h3>
+                <p className="text-xs text-[#666660]">
+                  Totalt {agenda.reduce((s, a) => s + a.minutes, 0)} min planerat
+                </p>
+              </div>
+              <button
+                onClick={() => setIsAgendaOpen(false)}
+                className="p-1 rounded text-[#666660] hover:text-[#121212] cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* .ICS Calendar Importer Box */}
+            <div className="p-3.5 rounded border border-[#C8C8BF] bg-[#FBFBFA] space-y-2.5">
+              <div className="flex items-center justify-between text-xs font-bold text-[#121212]">
+                <span>Importera från kalender (.ics):</span>
+                <label className="px-2.5 py-1 rounded bg-white border border-[#C8C8BF] hover:border-[#121212] text-[11px] font-mono cursor-pointer flex items-center gap-1">
+                  <Upload className="w-3 h-3 text-[#EA580C]" />
+                  <span>Välj .ics</span>
+                  <input
+                    type="file"
+                    accept=".ics,text/calendar"
+                    onChange={handleIcsFileUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+              <textarea
+                value={calendarInputText}
+                onChange={(e) => setCalendarInputText(e.target.value)}
+                rows={3}
+                placeholder="Eller klistra in VEVENT-data / agendarader här..."
+                className="w-full p-2.5 rounded border border-[#C8C8BF] bg-white text-xs font-mono text-[#121212] focus:outline-none"
+              />
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => handleImportCalendarInvite()}
+                  className="px-3 py-1 rounded bg-[#121212] hover:bg-black text-white font-mono text-xs font-bold cursor-pointer"
+                >
+                  Tolka .ics & uppdatera agenda
+                </button>
+              </div>
+            </div>
+
+            {calendarImportNotice && (
+              <div className="p-2.5 rounded bg-[#ECFDF5] border border-[#A7F3D0] text-[#16A34A] text-xs font-mono font-bold">
+                {calendarImportNotice}
+              </div>
+            )}
+
+            {/* Agenda Steps List */}
+            <div className="divide-y divide-[#E2E2DC] border border-[#E2E2DC] rounded bg-white">
+              {agenda.map((step, idx) => (
+                <div
+                  key={step.id}
+                  onClick={() => {
+                    playTickChime(700);
+                    setAgenda((prev) =>
+                      prev.map((a) =>
+                        a.id === step.id ? { ...a, completed: !a.completed } : a
+                      )
+                    );
+                  }}
+                  className={`p-3 flex items-center justify-between gap-3 cursor-pointer transition ${
+                    step.completed ? 'bg-[#FBFBFA] opacity-60 line-through' : 'hover:bg-[#FBFBFA]'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <CheckCircle2
+                      className={`w-4 h-4 shrink-0 ${
+                        step.completed ? 'text-[#16A34A]' : 'text-[#C8C8BF]'
+                      }`}
+                    />
+                    <span className="text-xs font-bold truncate">
+                      {idx + 1}. {step.title}
+                    </span>
+                  </div>
+                  <div className="font-mono text-xs font-bold text-[#EA580C] shrink-0">
+                    {step.minutes}m
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Add Agenda Step Form */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!newAgendaTitle.trim()) return;
+                setAgenda((prev) => [
+                  ...prev,
+                  {
+                    id: `ag-${Date.now()}`,
+                    title: newAgendaTitle.trim(),
+                    minutes: newAgendaMins,
+                    completed: false,
+                  },
+                ]);
+                setNewAgendaTitle('');
+              }}
+              className="flex gap-2"
+            >
+              <input
+                type="text"
+                value={newAgendaTitle}
+                onChange={(e) => setNewAgendaTitle(e.target.value)}
+                placeholder="Ny agendapunkt..."
+                className="flex-1 px-3 py-1.5 rounded border border-[#C8C8BF] text-xs"
+              />
+              <input
+                type="number"
+                value={newAgendaMins}
+                onChange={(e) => setNewAgendaMins(Number(e.target.value))}
+                className="w-16 px-2 py-1.5 rounded border border-[#C8C8BF] text-xs font-mono text-center"
+              />
+              <button
+                type="submit"
+                className="px-3 py-1.5 rounded bg-[#121212] hover:bg-black text-white text-xs font-mono font-bold cursor-pointer"
+              >
+                + Lägg till
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* DRAWER: SAVED MEETINGS ARCHIVE (SQLITE) */}
+      {isArchiveOpen && (
+        <div
+          onClick={() => setIsArchiveOpen(false)}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-2xl w-full bg-[#FFFFFF] border-2 border-[#121212] rounded-lg shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between border-b border-[#E2E2DC] pb-3">
+              <div>
+                <h3 className="font-bold text-lg text-[#121212]">
+                  Mötesarkiv (SQLite Databas)
+                </h3>
+                <p className="text-xs text-[#666660]">
+                  Tidigare sparade möteskvitton och kostnadsanalyser
+                </p>
+              </div>
+              <button
+                onClick={() => setIsArchiveOpen(false)}
+                className="p-1 rounded text-[#666660] hover:text-[#121212] cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {savedMeetings.length === 0 ? (
+              <div className="p-8 text-center text-xs font-mono text-[#666660]">
+                Inga sparade möten ännu. Klicka på "Spara i Arkiv" för att logga detta möte.
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {savedMeetings.map((m) => (
+                  <div
+                    key={m.id}
+                    className="p-3.5 rounded border border-[#E2E2DC] bg-[#FBFBFA] flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  >
+                    <div>
+                      <div className="font-bold text-sm text-[#121212]">{m.title}</div>
+                      <div className="font-mono text-xs text-[#666660] mt-0.5">
+                        {new Date(m.createdAt).toLocaleDateString('sv-SE')} • {m.attendeeCount} pers •{' '}
+                        {Math.round(m.durationSeconds / 60)} min
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <div className="font-mono font-bold text-base text-[#EA580C]">
+                          {Math.round(m.totalCostSek).toLocaleString('sv-SE')} SEK
+                        </div>
+                        <div className="font-mono text-[11px] text-[#16A34A]">
+                          {m.decisionsCount} beslut • {m.actionsCount} actions
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleDeleteSavedMeeting(m.id)}
+                        className="p-1 text-[#999990] hover:text-[#DC2626] transition cursor-pointer"
+                        title="Radera"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* PRO MODAL (HARKCO VALUE EXCHANGE) */}
+      {isProModalOpen && (
+        <div
+          onClick={() => setIsProModalOpen(false)}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-md w-full bg-[#FFFFFF] border-2 border-[#121212] rounded-lg shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150"
+          >
+            <div className="flex items-center justify-between border-b border-[#E2E2DC] pb-3">
+              <div className="flex items-center gap-2 text-[#121212] font-black text-base">
+                <Award className="w-5 h-5 text-[#EA580C]" />
                 <span>MötesKoll Team Pro — 149 kr</span>
               </div>
               <button
                 onClick={() => setIsProModalOpen(false)}
-                className="p-1.5 rounded-xl bg-slate-950 text-slate-400 hover:text-white cursor-pointer"
+                className="p-1 rounded text-[#666660] hover:text-[#121212] cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-xs sm:text-sm text-slate-300">
-              Byggd enligt Harkco-principerna: <strong>100% fri från annonser och spårning</strong>. Engångsupplåsning för konsultbolag och tech-leads:
+            <p className="text-xs text-[#666660] leading-relaxed">
+              Byggd enligt Harkco-principerna: <strong>100% fri från annonser och datainsamling</strong>. Engångsköp för konsultteam och ingenjörsledare:
             </p>
-            <ul className="space-y-2 text-xs text-slate-200">
-              <li>✅ Obegränsad SQLite-historik & kvartalsvis mötes-ROI-rapport</li>
-              <li>✅ Direkt Webhook-export till Slack, Linear & Jira</li>
-              <li>✅ Anpassade konsultprislistor & kund-faktureringsunderlag (CSV/PDF)</li>
+            <ul className="space-y-2 text-xs text-[#121212] font-medium">
+              <li>✅ Obegränsad lokal SQLite-historik & kvartalsrapporter</li>
+              <li>✅ Automatisk webhook-export till Slack & Notion</li>
+              <li>✅ Anpassade timarvodeslistor och fakturaunderlag</li>
             </ul>
             <div className="pt-2 flex justify-end">
               <button
                 onClick={() => setIsProModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-amber-400 text-slate-950 font-black text-xs cursor-pointer"
+                className="px-4 py-2 rounded bg-[#121212] hover:bg-black text-white font-mono text-xs font-bold cursor-pointer"
               >
                 Stäng förhandsvisning
               </button>
@@ -1661,8 +1608,51 @@ export function App() {
         </div>
       )}
 
-      <footer className="border-t border-slate-900 py-5 text-center text-xs text-slate-500 print:hidden">
-        MötesKoll — Harkco Daily Apps • Noll annonser • Hög mötesdisciplin
+      {/* 4. PRINTABLE A4 SWISS EXPENSE RECEIPT */}
+      <div
+        id="moteskoll-printable-receipt"
+        className="hidden print:block p-8 bg-white text-black space-y-6 font-mono"
+      >
+        <div className="border-b-2 border-black pb-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-black uppercase tracking-tight">
+              MÖTESKOLL — FORMELT MÖTESKVITTO
+            </h1>
+            <p className="text-sm font-bold mt-1">{meetingTitle}</p>
+          </div>
+          <div className="text-right text-xs">
+            <div>Datum: {new Date().toLocaleDateString('sv-SE')}</div>
+            <div>Deltagare: {totalAttendees} pers</div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4 border-b border-black pb-4 text-xs">
+          <div>
+            <div className="uppercase text-gray-500">Möteskostnad</div>
+            <div className="text-lg font-black mt-0.5">
+              {Math.round(referenceCost).toLocaleString('sv-SE')} SEK
+            </div>
+          </div>
+          <div>
+            <div className="uppercase text-gray-500">Snitt / Beslut</div>
+            <div className="text-lg font-black mt-0.5">
+              {costPerOutcomeSek.toLocaleString('sv-SE')} SEK
+            </div>
+          </div>
+          <div>
+            <div className="uppercase text-gray-500">ROI-Betyg</div>
+            <div className="text-lg font-black mt-0.5">{efficiency.grade}</div>
+          </div>
+        </div>
+
+        <pre className="text-xs whitespace-pre-wrap font-mono">
+          {buildExportString('markdown')}
+        </pre>
+      </div>
+
+      {/* Footer */}
+      <footer className="border-t border-[#E2E2DC] py-4 text-center text-xs font-mono text-[#666660] print:hidden">
+        MÖTESKOLL • HARKCO STUDIO (SWISS MODERNIST EDITION)
       </footer>
     </div>
   );
