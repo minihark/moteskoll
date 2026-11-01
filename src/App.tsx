@@ -1651,8 +1651,23 @@ export function App() {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-[#E2E2DC] py-4 text-center text-xs font-mono text-[#666660] print:hidden">
-        MÖTESKOLL • HARKCO STUDIO (SWISS MODERNIST EDITION)
+      <footer className="border-t border-[#E2E2DC] py-4 px-4 flex flex-col sm:flex-row items-center justify-center gap-3 text-center text-xs font-mono text-[#666660] print:hidden">
+        <span>MÖTESKOLL • HARKCO STUDIO (SWISS MODERNIST EDITION)</span>
+        <a
+          href="https://vakt.apps.harkco.se"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="MötesKoll Status på Harkco Vakt"
+          className="inline-block hover:opacity-90 transition-opacity"
+        >
+          <img
+            src="https://vakt.apps.harkco.se/badge/moteskoll.svg"
+            alt="MötesKoll: operational"
+            height="20"
+            className="h-5 inline-block"
+            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+          />
+        </a>
       </footer>
     </div>
   );
